@@ -1,0 +1,12 @@
+PS C:\Scripts> Get-Credential | Export-Clixml -Path "C:\Scripts\smtp-cred.xml"
+
+cmdlet Get-Credential at command pipeline position 1
+Supply values for the following parameters:
+Credential
+
+Get-Credential : Cannot process command because of one or more missing mandatory parameters: Credential.
+At line:1 char:1
++ Get-Credential | Export-Clixml -Path "C:\Scripts\smtp-cred.xml"
++ ~~~~~~~~~~~~~~
+    + CategoryInfo          : InvalidArgument: (:) [Get-Credential], ParameterBindingException
+    + FullyQualifiedErrorId : MissingMandatoryParameter,Microsoft.PowerShell.Commands.GetCredentialCommand
