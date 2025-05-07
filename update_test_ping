@@ -1,0 +1,53 @@
+# Cluster Nodes to Ping
+$servers = @("prl-sqlpoc1", "prl-sqlpoc2")
+$logDirectory = "C:\Scripts\Logs"
+if (-not (Test-Path $logDirectory)) {
+    New-Item -Path $logDirectory -ItemType Directory | Out-Null
+}
+$logPath = "$logDirectory\PingTestLog.txt"
+
+# Email Settings
+$smtpServer = "smtp.gmail.com"
+$smtpPort   = 587
+$from       = "prl-sqlpoc1@carshield.com"
+$to         = "onome.dakara@carshield.com"
+$subject    = "Ping Test for Cluster Nodes"
+
+# Load email credential securely
+$smtpCredPath = "C:\Scripts\smtp-cred.xml"
+if (-not (Test-Path $smtpCredPath)) {
+    Write-Error "❌ SMTP credential file not found at $smtpCredPath"
+    exit 1
+}
+$smtpCred = Import-Clixml -Path $smtpCredPath
+
+# Log function
+function Log-Info {
+    param ($msg)
+    "$((Get-Date).ToString('yyyy-MM-dd HH:mm:ss')) [INFO] $msg"
+}
+
+# Clear previous log
+Remove-Item -Path $logPath -ErrorAction SilentlyContinue
+
+# Ping each server
+foreach ($server in $servers) {
+    if (Test-Connection $server -Count 2 -Quiet) {
+        $msg = Log-Info "✅ Ping to $server succeeded."
+    } else {
+        $msg = Log-Info "❌ Ping to $server failed."
+    }
+
+    Write-Host $msg
+    $msg | Out-File -FilePath $logPath -Append
+}
+
+# Send log via email
+try {
+    $body = Get-Content -Path $logPath -Raw
+    Send-MailMessage -From $from -To $to -Subject $subject -Body $body `
+        -SmtpServer $smtpServer -Port $smtpPort -UseSsl -Credential $smtpCred
+    Write-Host "📧 Email sent to $to."
+} catch {
+    Write-Warning "❌ Failed to send email: $_"
+}
