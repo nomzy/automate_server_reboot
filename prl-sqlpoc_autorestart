@@ -1,0 +1,50 @@
+ Test-EmailPing
+
+# Settings
+#cluster nodes to Ping
+$server = @("prl-sqlpoc1", "prl-sqlpoc2")
+$logDirectory = "C:\Scripts\Logs"
+$logPath = "$logDirectory\$server-PingTestLog.txt"  # Unique log for each server
+
+# Email Settings
+$smtpServer = "smtp.gmail.com"
+$smtpPort = 587
+$from = "prl-sqlpoc1@carshield.com"  # Use your Gmail address for authentication
+$to = "onome.dakara@carshield.com"
+$subject = "Ping Test for cluster nodes"
+
+# Email credentials
+$Username = "onome.dakara@carshield.com"
+$Password = "muft iopp jpud iagn" | ConvertTo-SecureString -AsPlainText -Force
+$Creds = New-Object System.Management.Automation.PSCredential ($Username, $Password)
+
+#Define Log-Info function
+function Log-Info {
+	param ($msg)
+	"$(( Get-Date).ToString('yyyy-MM-dd HH:mm:ss')) [INFO] $msg"
+}
+	
+# Clear old log (if you want to clear it daily, otherwise remove this)
+# Remove-Item -Path $logPath -ErrorAction SilentlyContinue  # Uncomment to clear before writing new log
+Remove-Item -Path $logPath -ErrorAction SilentlyContinue
+
+# Ping each server
+foreach ($server in $server) {
+	if (Test-Connection $server -Count 2 -Quiet) {
+		$msg = Log-Info "Ping to $server succeeded."
+	} else {
+		$msg = Log-Info "Ping to $server failed"
+	}
+	
+	Write-Host $msg
+	$msg | Out-File -FilePath $logPath -Append
+}
+
+# Send log via Email
+try {
+    $body = Get-Content -Path $logPath -Raw
+    Send-MailMessage -From $from -To $to -Subject $subject -Body $body -SmtpServer $smtpServer -Port $smtpPort -UseSsl -Credential $Creds
+    Write-Host "Email sent to $to."
+} catch {
+    Write-Warning "Failed to send email: $_"
+}
